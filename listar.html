@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ODS Management App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      background-color: #4CAF50;
+      color: white;
+      padding: 1rem;
+      width: 100%;
+      text-align: center;
+    }
+    .container {
+      margin: 20px;
+      padding: 20px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 80%;
+      max-width: 800px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .accordion {
+      background-color: #e9f5e9;
+      color: #333;
+      cursor: pointer;
+      padding: 15px;
+      width: 100%;
+      text-align: left;
+      border: none;
+      outline: none;
+      transition: 0.4s;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+    .active, .accordion:hover {
+      background-color: #d4e9d4;
+    }
+    .panel {
+      padding: 0 15px;
+      background-color: white;
+      display: none;
+      overflow: hidden;
+      border: 1px solid #ddd;
+      border-top: none;
+      border-radius: 0 0 5px 5px;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: white;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 500px;
+      border-radius: 10px;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .close:hover, .close:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ODS Management App</h1>
+  </header>
+
+  <div class="container">
+    <h2>ODS List</h2>
+    <button onclick="openModal()">Criar ODS</button>
+    <button onclick="getODS()">Carregar ODS</button>
+    <div id="ods-pontos">Pontos Total:</div>
+    <div id="ods-list"></div>
+  </div>
+
+  <!-- Modal for creating ODS -->
+  <div id="odsModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h2>Create ODS</h2>
+      <div class="form-group">
+        <label for="ods-title">Title</label>
+        <input type="text" id="ods-title">
+      </div>
+      <div class="form-group">
+        <label for="ods-description">Description</label>
+        <textarea id="ods-description"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="ods-points">Points</label>
+        <input type="number" id="ods-points">
+      </div>
+      <div class="form-group">
+        <label for="ods-category">Category</label>
+        <input type="text" id="ods-category">
+      </div>
+      <button onclick="createODS()">Save ODS</button>
+    </div>
+  </div>
+
+  <script>
+    const baseUrl = 'https://codepoit-desafio-backend.onrender.com';
+    //const baseUrl = 'http://localhost:8080';
+    let jwtToken = localStorage.getItem('jwtToken') || '';
+
+    function openModal() {
+      document.getElementById('odsModal').style.display = 'block';
+    }
+
+    function closeModal() {
+      document.getElementById('odsModal').style.display = 'none';
+    }
+
+    getAllPoints();
+
+    async function createODS() {
+      const title = document.getElementById('ods-title').value;
+      const description = document.getElementById('ods-description').value;
+      const points = parseInt(document.getElementById('ods-points').value);
+      const category = document.getElementById('ods-category').value;
+
+      const response = await fetch(`${baseUrl}/ods`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwtToken}`
+        },
+        body: JSON.stringify({ title, description, points, category })
+      });
+
+      const result = await response.json();
+      console.log('ODS Created:', result);
+      closeModal();
+      getODS();
+    }
+
+  async function deleteODS(id) {
+    try {
+      const response = await fetch(`${baseUrl}/ods/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
+      if (response.ok) {
+        console.log(`ODS with ID ${id} deleted.`);
+      } else {
+        console.error('Failed to delete ODS.');
+      }
+    } catch (error) {
+      console.error('Error deleting ODS:', error);
+    }
+  }
+
+    async function getAllPoints() {
+      const response = await fetch(`${baseUrl}/ods/pontos`, {
+        headers: { 'Authorization': `Bearer ${jwtToken}` }
+      });
+      const odsPoints = await response.json();
+      const odsContainer = document.getElementById('ods-pontos');
+      odsContainer.innerHTML = 'Pontos total: '+odsPoints;
+    }
+
+    async function getODS() {
+      const response = await fetch(`${baseUrl}/ods`, {
+        headers: { 'Authorization': `Bearer ${jwtToken}` }
+      });
+      const odsList = await response.json();
+
+      const odsContainer = document.getElementById('ods-list');
+      odsContainer.innerHTML = '';
+
+      odsList.forEach(ods => {
+        const odsElement = document.createElement('button');
+        odsElement.classList.add('accordion');
+        odsElement.innerHTML = `${ods.title} - Points: ${ods.points} - Created At: ${new Date(ods.createdAt).toLocaleDateString()}`;
+
+        const panel = document.createElement('div');
+        panel.classList.add('panel');
+        panel.innerHTML = `<p>${ods.description}</p>`;
+
+        odsElement.onclick = function() {
+          this.classList.toggle('active');
+          const panel = this.nextElementSibling;
+          if (panel.style.display === 'block') {
+            panel.style.display = 'none';
+          } else {
+            panel.style.display = 'block';
+          }
+        };
+
+        odsContainer.appendChild(odsElement);
+        odsContainer.appendChild(panel);
+      });
+    }
+  </script>
+</body>
+</html>
+
+<!-- Separate files for registration and login pages can be created similarly with forms and API integration as shown in the previous version. -->
